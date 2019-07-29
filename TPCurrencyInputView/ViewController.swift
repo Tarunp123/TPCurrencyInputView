@@ -10,8 +10,11 @@ import UIKit
 
 class ViewController: UIViewController {
 
+    @IBOutlet weak var currencyView: TPCurrencyInputView!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         
     }
 
