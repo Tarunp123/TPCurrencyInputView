@@ -16,13 +16,11 @@ class TPCurrencyInputView: UIView {
     private var groupingSeperator: String!
     private var decimalSeperator: String!
     private var groupingSize: Int = -1
-    private let maxAmount: Double = 100_000.00
+    private let maxAmount: Double = 10_000_000.00
     
-    @IBInspectable var defaultValue: Double = 0//{
-//        didSet{
-//            self.textField.text = "\(self.defaultValue)"
-//        }
-//    }
+    private let currencyFormatter = NumberFormatter()
+    
+    @IBInspectable var defaultValue: Double = 0
     
     
     override func awakeFromNib() {
@@ -44,7 +42,7 @@ class TPCurrencyInputView: UIView {
         self.textField = UITextField()
         self.textField.delegate = self
         self.textField.keyboardType = .decimalPad
-        self.textField.isUserInteractionEnabled = false
+        self.textField.isUserInteractionEnabled = true
         self.addSubview(self.textField)
         self.textField.translatesAutoresizingMaskIntoConstraints = false
         self.textField.leadingAnchor.constraint(equalTo: self.safeAreaLayoutGuide.leadingAnchor).isActive = true
@@ -73,15 +71,15 @@ class TPCurrencyInputView: UIView {
     }
  
     func getCurrencyGroupingSeperatorAndDecimalSeperator() -> [String] {
-        let currencyFormatter = NumberFormatter()
         currencyFormatter.usesGroupingSeparator = true
         currencyFormatter.numberStyle = .currency
         currencyFormatter.locale = Locale.current
         return [currencyFormatter.currencyGroupingSeparator, String(currencyFormatter.groupingSize), currencyFormatter.currencyDecimalSeparator]
     }
     
+    
     private func getNumericIntValue(amountString: String) -> Int?{
-        let currencyFormatter = NumberFormatter()
+        currencyFormatter.usesGroupingSeparator = false
         currencyFormatter.currencySymbol = ""
         currencyFormatter.numberStyle = .currency
         currencyFormatter.locale = Locale.current
@@ -92,7 +90,7 @@ class TPCurrencyInputView: UIView {
     }
     
     private func getNumericDoubleValue(amountString: String) -> Double?{
-        let currencyFormatter = NumberFormatter()
+        currencyFormatter.usesGroupingSeparator = false
         currencyFormatter.currencySymbol = ""
         currencyFormatter.numberStyle = .currency
         currencyFormatter.locale = Locale.current
