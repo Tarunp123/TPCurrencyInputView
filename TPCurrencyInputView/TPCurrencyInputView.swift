@@ -13,8 +13,8 @@ class TPCurrencyInputView: UIView {
     private var textField: UITextField!
     private var transparentOverlay: UIView!
     
-    private var groupingSeperator: String!
-    private var decimalSeperator: String!
+    private var groupingSeparator: String!
+    private var decimalSeparator: String!
     private var groupingSize: Int = -1
     private let maxAmount: Double = 10_000_000.00
     
@@ -26,15 +26,34 @@ class TPCurrencyInputView: UIView {
     override func awakeFromNib() {
         super.awakeFromNib()
         
+        //initializing and setting up subviews
         self.setupSubviews()
-        self.textField.text = "\(self.defaultValue)"
         
-        let groupingSeperatorAndDecimalSeperator = self.getCurrencyGroupingSeperatorAndDecimalSeperator()
-        self.groupingSeperator = groupingSeperatorAndDecimalSeperator.first
-        if let size = Int(groupingSeperatorAndDecimalSeperator[1]){
+        //Identifying Decimal & Group Separator from System Locale
+        let groupingSeparatorAndDecimalSeparator = self.getCurrencyGroupingSeparatorAndDecimalSeparator()
+        self.groupingSeparator = groupingSeparatorAndDecimalSeparator.first
+        if let size = Int(groupingSeparatorAndDecimalSeparator[1]){
             self.groupingSize = size
         }
-        self.decimalSeperator = groupingSeperatorAndDecimalSeperator.last
+        self.decimalSeparator = groupingSeparatorAndDecimalSeparator.last
+        
+        //Displaying default value with formatting
+        let defaultValue = String(format: "%.2f", self.defaultValue)
+        let parts = defaultValue.components(separatedBy: ".")
+        var defaultDisplayString = defaultValue
+        if let integerPart = parts.first{
+            defaultDisplayString = self.getNumericIntValue(amountString: integerPart)!.inCurrencyFormatWithCurrencySymbol("")
+        }
+        
+        //checking if default value has decimal part
+        if parts.count == 2{
+            if let decimalPart = parts.last{
+                defaultDisplayString += self.decimalSeparator + decimalPart
+            }
+        }
+        
+        self.textField.text = defaultDisplayString
+        
     }
     
     private func setupSubviews(){
@@ -70,7 +89,7 @@ class TPCurrencyInputView: UIView {
         _ = self.textField.becomeFirstResponder()
     }
  
-    func getCurrencyGroupingSeperatorAndDecimalSeperator() -> [String] {
+    func getCurrencyGroupingSeparatorAndDecimalSeparator() -> [String] {
         currencyFormatter.usesGroupingSeparator = true
         currencyFormatter.numberStyle = .currency
         currencyFormatter.locale = Locale.current
@@ -117,7 +136,7 @@ extension TPCurrencyInputView: UITextFieldDelegate{
         }
         
         //removing formatting
-        updatedText = updatedText.replacingOccurrences(of: groupingSeperator, with: "")
+        updatedText = updatedText.replacingOccurrences(of: groupingSeparator, with: "")
         
         if let newAmount = getNumericDoubleValue(amountString: updatedText){
             if newAmount > self.maxAmount{
@@ -126,23 +145,23 @@ extension TPCurrencyInputView: UITextFieldDelegate{
         }
         
         //Checking if user is trying to enter "." (decimal point) multiple times.
-        if currentText.contains(decimalSeperator) && string.elementsEqual(decimalSeperator){
+        if currentText.contains(decimalSeparator) && string.elementsEqual(decimalSeparator){
             return false
         }
         
         //Checking if first char entered is a decimal point
         //if yes add "0" as prefix.
-        if currentText.isEmpty && string.elementsEqual(decimalSeperator){
-            textField.text = "0" + decimalSeperator
+        if currentText.isEmpty && string.elementsEqual(decimalSeparator){
+            textField.text = "0" + decimalSeparator
             return false
         }
         
         //checking if user entered "." (decimal point)
-        if updatedText.hasSuffix(decimalSeperator){
+        if updatedText.hasSuffix(decimalSeparator){
             return true
         }
         
-        let parts = updatedText.components(separatedBy: decimalSeperator)
+        let parts = updatedText.components(separatedBy: decimalSeparator)
         
         var decimalPart : String?
         
@@ -151,7 +170,7 @@ extension TPCurrencyInputView: UITextFieldDelegate{
             decimalPart = parts.last
             if decimalPart!.count <= 2 {
                 if let newAmount = getNumericDoubleValue(amountString: updatedText){
-                    textField.text = currentText.components(separatedBy: decimalSeperator).first! + decimalSeperator + String(newAmount).components(separatedBy: ".").last!
+                    textField.text = currentText.components(separatedBy: decimalSeparator).first! + decimalSeparator + String(newAmount).components(separatedBy: ".").last!
                     return false
                 }
                 return true
@@ -164,7 +183,7 @@ extension TPCurrencyInputView: UITextFieldDelegate{
         let integerPart = parts.first!
         var displayStr = getNumericIntValue(amountString: integerPart)!.inCurrencyFormatWithCurrencySymbol("")
         if let decimalPart = decimalPart{
-            displayStr += self.decimalSeperator + decimalPart
+            displayStr += self.decimalSeparator + decimalPart
         }
         textField.text = displayStr
         return false
@@ -174,10 +193,10 @@ extension TPCurrencyInputView: UITextFieldDelegate{
         
         guard let amountText = textField.text, !amountText.isEmpty else { return }
         
-        //checking if last char was decimal seperator
-        //if yes, drop the decimal seperator.
-        if amountText.hasSuffix(decimalSeperator){
-            if let integerPart = amountText.components(separatedBy: decimalSeperator).first{
+        //checking if last char was decimal separator
+        //if yes, drop the decimal separator.
+        if amountText.hasSuffix(decimalSeparator){
+            if let integerPart = amountText.components(separatedBy: decimalSeparator).first{
                 textField.text = integerPart
             }
         }
