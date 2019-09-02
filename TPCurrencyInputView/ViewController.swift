@@ -15,9 +15,51 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        self.currencyView.font = UIFont.boldSystemFont(ofSize: UIFont.preferredFont(forTextStyle: UIFont.TextStyle.largeTitle).pointSize)
         
     }
 
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

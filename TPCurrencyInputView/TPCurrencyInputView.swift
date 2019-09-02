@@ -22,6 +22,11 @@ class TPCurrencyInputView: UIView {
     
     @IBInspectable var defaultValue: Double = 0
     
+    var font: UIFont?{
+        didSet{
+            self.setFont()
+        }
+    }
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -83,6 +88,11 @@ class TPCurrencyInputView: UIView {
         let tapGR = UITapGestureRecognizer(target: self, action: #selector(blockingViewTapped(sender:)))
         self.transparentOverlay.addGestureRecognizer(tapGR)
         
+    }
+    
+    private func setFont(){
+        guard let font = self.font else { return }
+        self.textField.font = font
     }
     
     @IBAction func blockingViewTapped(sender: UITapGestureRecognizer){
