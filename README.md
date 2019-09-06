@@ -1,4 +1,4 @@
-# TPCurrencyView
+# TPCurrencyInputView
 A Simple to use Input View for Currency Values; that provides real time formatting as user types based to their Locale preferences.
 
 ![TPCurrencyView Quick Demo Video](https://github.com/Tarunp123/TPCurrencyInputView/blob/master/public_resources/TPCurrencyInputView_v1.gif)
