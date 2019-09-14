@@ -13,12 +13,20 @@ class TPCurrencyInputView: UIView {
     private var textField: UITextField!
     private var transparentOverlay: UIView!
     
-    private var groupingSeparator: String!
-    private var decimalSeparator: String!
-    private var groupingSize: Int = -1
+    private var formattingAttributes: CurrencyFormattingAttributes!
     private let maxAmount: Double = 10_000_000.00
     
     private let currencyFormatter = NumberFormatter()
+    
+    private var displayString: String = "" {
+        didSet{
+            if self.shouldShowCurrencySymbol && !self.displayString.contains(formattingAttributes.currencySymbol){
+                self.textField.text = self.formattingAttributes.currencySymbolPositon == .Leading ? self.formattingAttributes.currencySymbol + " " + displayString : displayString + " " + self.formattingAttributes.currencySymbol
+            }else{
+                self.textField.text = displayString
+            }
+        }
+    }
     
     @IBInspectable var defaultValue: Double = 0
     
@@ -28,6 +36,13 @@ class TPCurrencyInputView: UIView {
         }
     }
     
+    var shouldShowCurrencySymbol = true {
+        didSet{
+            self.displayString = self.displayString + ""
+        }
+    }
+    
+    
     override func awakeFromNib() {
         super.awakeFromNib()
         
@@ -35,12 +50,7 @@ class TPCurrencyInputView: UIView {
         self.setupSubviews()
         
         //Identifying Decimal & Group Separator from System Locale
-        let groupingSeparatorAndDecimalSeparator = self.getCurrencyGroupingSeparatorAndDecimalSeparator()
-        self.groupingSeparator = groupingSeparatorAndDecimalSeparator.first
-        if let size = Int(groupingSeparatorAndDecimalSeparator[1]){
-            self.groupingSize = size
-        }
-        self.decimalSeparator = groupingSeparatorAndDecimalSeparator.last
+        self.formattingAttributes = self.getCurrencyFormattingAttributesFromCurrentLocale()
         
         //Displaying default value with formatting
         let defaultValue = String(format: "%.2f", self.defaultValue)
@@ -53,11 +63,12 @@ class TPCurrencyInputView: UIView {
         //checking if default value has decimal part
         if parts.count == 2{
             if let decimalPart = parts.last{
-                defaultDisplayString += self.decimalSeparator + decimalPart
+                defaultDisplayString += self.formattingAttributes.decimalSeparator + decimalPart
             }
         }
         
-        self.textField.text = defaultDisplayString
+        self.displayString = defaultDisplayString
+        
         
     }
     
@@ -99,11 +110,12 @@ class TPCurrencyInputView: UIView {
         _ = self.textField.becomeFirstResponder()
     }
  
-    func getCurrencyGroupingSeparatorAndDecimalSeparator() -> [String] {
+    func getCurrencyFormattingAttributesFromCurrentLocale() -> CurrencyFormattingAttributes {
+        let currencyFormatter = NumberFormatter()
         currencyFormatter.usesGroupingSeparator = true
         currencyFormatter.numberStyle = .currency
         currencyFormatter.locale = Locale.current
-        return [currencyFormatter.currencyGroupingSeparator, String(currencyFormatter.groupingSize), currencyFormatter.currencyDecimalSeparator]
+        return CurrencyFormattingAttributes(groupingSeparator: currencyFormatter.currencyGroupingSeparator, groupingSize: currencyFormatter.groupingSize, decimalSeparator: currencyFormatter.currencyDecimalSeparator, currencySymbol: currencyFormatter.currencySymbol, currencySymbolPositon: .Leading)
     }
     
     
@@ -140,13 +152,15 @@ extension TPCurrencyInputView: UITextFieldDelegate{
         
         var updatedText = currentText.replacingCharacters(in: stringRange, with: string)
         
+        //removing formatting
+        updatedText = updatedText.replacingOccurrences(of: self.formattingAttributes.currencySymbol, with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        updatedText = updatedText.replacingOccurrences(of: self.formattingAttributes.groupingSeparator, with: "")
+        
         if updatedText.isEmpty{
-            textField.text = ""
+            self.displayString = ""
             return false
         }
         
-        //removing formatting
-        updatedText = updatedText.replacingOccurrences(of: groupingSeparator, with: "")
         
         if let newAmount = getNumericDoubleValue(amountString: updatedText){
             if newAmount > self.maxAmount{
@@ -155,23 +169,23 @@ extension TPCurrencyInputView: UITextFieldDelegate{
         }
         
         //Checking if user is trying to enter "." (decimal point) multiple times.
-        if currentText.contains(decimalSeparator) && string.elementsEqual(decimalSeparator){
+        if currentText.contains(self.formattingAttributes.decimalSeparator) && string.elementsEqual(self.formattingAttributes.decimalSeparator){
             return false
         }
         
         //Checking if first char entered is a decimal point
         //if yes add "0" as prefix.
-        if currentText.isEmpty && string.elementsEqual(decimalSeparator){
-            textField.text = "0" + decimalSeparator
+        if currentText.isEmpty && string.elementsEqual(self.formattingAttributes.decimalSeparator){
+            self.displayString = "0" + self.formattingAttributes.decimalSeparator
             return false
         }
         
         //checking if user entered "." (decimal point)
-        if updatedText.hasSuffix(decimalSeparator){
+        if updatedText.hasSuffix(self.formattingAttributes.decimalSeparator){
             return true
         }
         
-        let parts = updatedText.components(separatedBy: decimalSeparator)
+        let parts = updatedText.components(separatedBy: self.formattingAttributes.decimalSeparator)
         
         var decimalPart : String?
         
@@ -180,7 +194,7 @@ extension TPCurrencyInputView: UITextFieldDelegate{
             decimalPart = parts.last
             if decimalPart!.count <= 2 {
                 if let newAmount = getNumericDoubleValue(amountString: updatedText){
-                    textField.text = currentText.components(separatedBy: decimalSeparator).first! + decimalSeparator + String(newAmount).components(separatedBy: ".").last!
+                    self.displayString = currentText.components(separatedBy: self.formattingAttributes.decimalSeparator).first! + self.formattingAttributes.decimalSeparator + String(newAmount).components(separatedBy: ".").last!
                     return false
                 }
                 return true
@@ -193,9 +207,9 @@ extension TPCurrencyInputView: UITextFieldDelegate{
         let integerPart = parts.first!
         var displayStr = getNumericIntValue(amountString: integerPart)!.inCurrencyFormatWithCurrencySymbol("")
         if let decimalPart = decimalPart{
-            displayStr += self.decimalSeparator + decimalPart
+            displayStr += self.formattingAttributes.decimalSeparator + decimalPart
         }
-        textField.text = displayStr
+        self.displayString = displayStr
         return false
     }
     
@@ -205,9 +219,9 @@ extension TPCurrencyInputView: UITextFieldDelegate{
         
         //checking if last char was decimal separator
         //if yes, drop the decimal separator.
-        if amountText.hasSuffix(decimalSeparator){
-            if let integerPart = amountText.components(separatedBy: decimalSeparator).first{
-                textField.text = integerPart
+        if amountText.hasSuffix(self.formattingAttributes.decimalSeparator){
+            if let integerPart = amountText.components(separatedBy: self.formattingAttributes.decimalSeparator).first{
+                self.displayString = integerPart
             }
         }
         
@@ -219,18 +233,31 @@ extension TPCurrencyInputView: UITextFieldDelegate{
 extension Int {
     
     func inCurrencyFormatWithCurrencySymbol(_ symbol: String) -> String {
-        let currencySymbol = " " + symbol + " "
         let currencyFormatter = NumberFormatter()
         currencyFormatter.usesGroupingSeparator = true
         currencyFormatter.numberStyle = .currency
         currencyFormatter.locale = Locale.current
-        currencyFormatter.currencySymbol = currencySymbol
+        currencyFormatter.currencySymbol = symbol
         if let formattedString = currencyFormatter.string(from: NSNumber(value: self)){
             if let integerPart = formattedString.trimmingCharacters(in: .whitespaces).components(separatedBy: currencyFormatter.decimalSeparator).first{
                 return integerPart
             }
         }
-        return currencySymbol + " 0"
+        return symbol + " 0"
     }
     
+}
+
+
+struct CurrencyFormattingAttributes {
+    let groupingSeparator: String
+    let groupingSize: Int
+    let decimalSeparator: String
+    let currencySymbol: String
+    let currencySymbolPositon: CurrenySymbolPosition
+}
+
+enum CurrenySymbolPosition {
+    case Leading
+//    case Trailing
 }
